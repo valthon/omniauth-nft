@@ -1,0 +1,152 @@
+<style>
+    .metamask {
+        display: none;
+    }
+    .nft_request {
+        display: flex; flex-direction: column; text-align: center; width: 100%
+    }
+    .nft_request div {
+        margin: 16px;
+    }
+    button {
+        background-color: lightgreen;
+        padding: 2px 5px;
+        border: solid 1px black;
+        border-radius: 5px;
+    }
+    button:hover {
+        background-color: greenyellow;
+    }
+    button:active {
+        background-color: green;
+        color: white;
+    }
+    h2 {
+        display: block;
+        margin: 16px;
+    }
+    .nft_list {
+        margin: 10px;
+        display: flex;
+        flex-direction: row;
+        align-content: space-evenly;
+    }
+    .thumbnail {
+        margin: 5px;
+        border: thin solid #666;
+        max-height: 128px;
+        max-width: 128px;
+    }
+    textarea {
+        width: 32em;
+        height: 6em;
+    }
+</style>
+<script>
+    function set_address(id) {
+      document.querySelector('input[name=address]').value = id;
+      document.querySelector('form').submit();
+    }
+    function set_sig(sig) {
+      document.querySelector('textarea[name=sig]').value = sig;
+      document.querySelector('form').submit();
+    }
+
+    async function checkEthereum(ethereum) {
+      if (typeof ethereum !== 'undefined') {
+        const accounts = await ethereum.request({ method: 'eth_accounts' });
+        if (accounts && accounts[ 0 ] && accounts[0] != '<%= @address %>') {
+          set_address(accounts[ 0 ])
+        } else {
+          document.querySelectorAll('.metamask').forEach(x => x.style.display = 'block');
+          document.querySelector('.metamask button').addEventListener('click', async x => {
+            x.preventDefault();
+            const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+            if (accounts && accounts[ 0 ]) {
+              set_address(accounts[ 0 ]);
+            }
+          })
+        }
+      }
+    }
+
+    async function tryEthereumSign(ethereum) {
+      if (typeof ethereum !== 'undefined') {
+        const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+        const oldAccount = '<%= @address %>';
+        if (accounts && accounts[ 0 ] && accounts[0] != '<%= @address %>') {
+          set_address(accounts[ 0 ])
+        } else if (accounts && accounts[0]) {
+          const account = accounts[0]
+          const message = document.querySelector('textarea[name=sigmsg]').value;
+          const sig = await ethereum.request({ method: 'personal_sign', params: [message, account] });
+          if (sig) {
+            set_sig(sig);
+          }
+        }
+      }
+    }
+</script>
+
+<% if @address.blank? %>
+
+  <div class="nft_request">
+    <div style="display:block">
+      Enter your wallet address:
+      <%= form_tag '', data: { turbo: false }, authenticity_token: params['authenticity_token'] do %>
+        <input class="address_input" name="address" type="text" placeholder="0x051c6..."/>
+        <button>Go!</button>
+      <% end %>
+    </div>
+    <div class="metamask">
+      - or -
+    </div>
+    <div class="metamask">
+      Connect with <button>MetaMask</button>
+    </div>
+  </div>
+
+  <script>
+    checkEthereum(window.ethereum);
+  </script>
+
+<% elsif !@sig_valid %>
+
+  Please sign the following to continue...
+
+  <br/>
+
+  <textarea name=sigmsg disabled><%= @msg %></textarea>
+
+  <br/><br/>
+
+  <%= form_tag '', data: { turbo: false }, authenticity_token: params['authenticity_token'] do %>
+    <textarea placeholder="paste signature here..." name="sig"></textarea>
+    <%= hidden_field_tag :address, @address %>
+    <button>Go!</button>
+  <% end %>
+
+  <script>
+    tryEthereumSign(window.ethereum);
+  </script>
+
+  <%= link_to 'cancel', '/' %>
+
+  <script>
+
+  </script>
+
+<% elsif @list.blank? %>
+<% else %>
+  <h2>Which NFT would you like to authenticate with?</h2>
+  <row>
+    <ul class="nft_list" >
+      <% @list.each do |nft| %>
+        <%= button_to create_session_path(provider: 'nft'), params: { address: @address, nft_id: nft['token_id'], nft_contract: nft['asset_contract']['address'], sig: @sig, msg: @msg } do %>
+          <%= image_tag nft['image_thumbnail_url'] || nft['image_url'], title: nft['name'], alt: nft['token_id'], class: 'thumbnail' %>
+        <% end %>
+      <% end %>
+    </ul>
+  </row>
+
+<% end %>
