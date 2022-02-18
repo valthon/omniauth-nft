@@ -29,7 +29,7 @@ Gem::Specification.new do |spec|
   spec.executables = spec.files.grep(%r{\Aexe/}) { |f| File.basename(f) }
   spec.require_paths = ["lib"]
 
-  spec.add_dependency "eth", "~> 0.4"
+  spec.add_dependency "eth", "~> 0.5"
   spec.add_dependency "nft_checker", "~> 0.3"
   spec.add_dependency "omniauth", "~> 2.0"
 

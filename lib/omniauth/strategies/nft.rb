@@ -75,9 +75,7 @@ module OmniAuth
       end
 
       def verify_signature(address, message, signature)
-        recovered_public_key = Eth::Key.personal_recover(message, signature)
-        recovered_address = Eth::Utils.public_key_to_address(recovered_public_key)
-        recovered_address.casecmp(address).zero?
+        Eth::Signature.verify(message, signature, address)
       end
 
       def verify_collection(nft_collection)
